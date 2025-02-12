@@ -1,4 +1,7 @@
 "use client";
+import * as WorldCoin from "@worldcoin/minikit-js";
+
+console.log(WorldCoin);
 import {
   MiniKit,
   VerificationLevel,

@@ -15,6 +15,7 @@ const authOptions: NextAuthOptions = {
       idToken: true,
       checks: ["state", "nonce", "pkce"],
       profile(profile) {
+        console.log("Perfil recibido de Worldcoin:", profile); // ✅ Imprime lo que devuelve Worldcoin
         return {
           id: profile.sub,
           name: profile.sub,
