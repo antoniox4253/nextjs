@@ -1,7 +1,8 @@
 "use client"; // 👈 Necesario para permitir hooks en Next.js
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSession, signIn } from "next-auth/react";
 import { useToast } from "@/components/ui/use-toast";
 import ParticleBackground from "@/components/ParticleBackground";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,41 @@ import {
   Store, Users2, Gavel, Search, Filter,
   Timer, ArrowUpDown, DollarSign, Dumbbell,
   Clock, Trash2, Plus, AlertCircle, CheckCircle2,
-  Users, Tag, Swords
+  Users, Tag, Swords, ShoppingBag, Gamepad, Compass
 } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute"; // ✅ Protección de ruta
+import FooterNav from "@/components/Footer"; // ✅ Footer centralizado
+
 
 export default function Market() {
   const router = useRouter(); // ✅ Reemplazo de useNavigate()
+  const { data: session, status } = useSession();
+
+ // 🚀 Redirige al login si no está autenticado después de 5 segundos
+ useEffect(() => {
+  if (status === "unauthenticated") {
+    setTimeout(() => {
+      signIn();
+    }, 5000); // ⏳ Espera 5 segundos antes de redirigir
+  }
+}, [status]);
+
+// 🛑 Muestra un mensaje si está verificando la sesión o si está no autenticado (antes de redirigir)
+if (status === "loading" || status === "unauthenticated") {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-solo-dark text-black">
+      <div className="p-6 bg-white rounded-lg shadow-lg text-center">
+        <p className="text-xl font-bold">🔄 Login please...</p>
+        {status === "unauthenticated" && (
+          <p className="text-md text-gray-600 mt-2">You will be redirected to login in 5 seconds...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -56,6 +87,7 @@ export default function Market() {
   };
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-solo-dark text-white">
       <ParticleBackground className="fixed inset-0" />
       
@@ -132,32 +164,10 @@ export default function Market() {
           </Tabs>
         </main>
 
-        {/* ✅ Footer con navegación */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-solo-dark/95 backdrop-blur-sm border-t border-solo-purple/20 p-2">
-          <div className="flex justify-around max-w-md mx-auto">
-            <Button onClick={() => router.push('/dashboard')} variant="ghost" size="sm">
-              <Store className="w-5 h-5 text-solo-purple" />
-              <span className="text-xs">Inicio</span>
-            </Button>
-            <Button onClick={() => router.push('/training')} variant="ghost" size="sm">
-              <Dumbbell className="w-5 h-5 text-solo-blue" />
-              <span className="text-xs">Training</span>
-            </Button>
-            <Button onClick={() => router.push('/guild')} variant="ghost" size="sm">
-              <Users className="w-5 h-5 text-solo-magenta" />
-              <span className="text-xs">Guild</span>
-            </Button>
-            <Button onClick={() => router.push('/inventory')} variant="ghost" size="sm">
-              <AlertCircle className="w-5 h-5 text-solo-blue" />
-              <span className="text-xs">Inventario</span>
-            </Button>
-            <Button onClick={() => router.push('/combat')} variant="ghost" size="sm">
-              <Swords className="w-5 h-5 text-solo-energy" />
-              <span className="text-xs">Combat</span>
-            </Button>
-          </div>
-        </footer>
+     {/* ✅ Footer reutilizable */}
+        <FooterNav />
       </div>
     </div>
+        </ProtectedRoute>
   );
 }

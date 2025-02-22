@@ -1,37 +1,67 @@
+"use client"; // ✅ Necesario para hooks en Next.js
 
-import React from 'react';
-import TrainingSection from '@/components/TrainingSection';
-import ParticleBackground from '@/components/ParticleBackground';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Gamepad, Dumbbell, Users, Compass, ShoppingBag, Swords } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession, signIn } from "next-auth/react";
+import ParticleBackground from "@/components/ParticleBackground";
+import TrainingSection from "@/components/TrainingSection";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Gamepad, Dumbbell, Users, Compass, ShoppingBag, Swords } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import FooterNav from "@/components/Footer"; // ✅ Footer centralizado
 
-const Training = () => {
-  const navigate = useNavigate();
+
+export default function Training() {
+  const router = useRouter();
   const { t } = useLanguage();
+  const { data: session, status } = useSession();
+
+ // 🚀 Redirige al login si no está autenticado después de 5 segundos
+ useEffect(() => {
+  if (status === "unauthenticated") {
+    setTimeout(() => {
+      signIn();
+    }, 5000); // ⏳ Espera 5 segundos antes de redirigir
+  }
+}, [status]);
+
+// 🛑 Muestra un mensaje si está verificando la sesión o si está no autenticado (antes de redirigir)
+if (status === "loading" || status === "unauthenticated") {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-solo-dark text-black">
+      <div className="p-6 bg-white rounded-lg shadow-lg text-center">
+        <p className="text-xl font-bold">🔄 Login please...</p>
+        {status === "unauthenticated" && (
+          <p className="text-md text-gray-600 mt-2">You will be redirected to login in 5 seconds...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
   return (
     <div className="min-h-screen bg-solo-dark text-white relative">
       <ParticleBackground />
-      
+
       <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-solo-purple via-solo-blue to-solo-magenta bg-clip-text text-transparent">
-            {t('training')}
+            {t("training")}
           </h1>
         </div>
 
+        {/* ✅ Sistema de Tabs */}
         <Tabs defaultValue="physical" className="w-full">
           <TabsList className="grid grid-cols-2 gap-4 bg-solo-dark/50 p-1 mb-6">
-            <TabsTrigger 
+            <TabsTrigger
               value="physical"
               className="data-[state=active]:bg-solo-neon data-[state=active]:text-black"
             >
               Physical
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="magical"
               className="data-[state=active]:bg-solo-cyber data-[state=active]:text-black"
             >
@@ -49,60 +79,8 @@ const Training = () => {
         </Tabs>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-solo-dark/95 backdrop-blur-sm border-t border-solo-purple/20 py-2 px-4 z-50">
-        <div className="grid grid-cols-6 gap-1 max-w-lg mx-auto">
-          <Button 
-            onClick={() => navigate('/dashboard')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-purple/20"
-          >
-            <Gamepad className="w-5 h-5 text-solo-purple" />
-            <span className="text-[10px] text-solo-gray">Home</span>
-          </Button>
-          <Button 
-            onClick={() => navigate('/training')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-blue/20 bg-solo-blue/10"
-          >
-            <Dumbbell className="w-5 h-5 text-solo-blue" />
-            <span className="text-[10px] text-white">Training</span>
-          </Button>
-          <Button 
-            onClick={() => navigate('/guild')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-magenta/20"
-          >
-            <Users className="w-5 h-5 text-solo-magenta" />
-            <span className="text-[10px] text-solo-gray">Guild</span>
-          </Button>
-          <Button 
-            onClick={() => navigate('/inventory')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-cyber/20"
-          >
-            <Compass className="w-5 h-5 text-solo-cyber" />
-            <span className="text-[10px] text-solo-gray">Inventory</span>
-          </Button>
-          <Button 
-            onClick={() => navigate('/combat')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-energy/20"
-          >
-            <Swords className="w-5 h-5 text-solo-energy" />
-            <span className="text-[10px] text-solo-gray">Combat</span>
-          </Button>
-          <Button 
-            onClick={() => navigate('/market')} 
-            variant="ghost"
-            className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-neon/20"
-          >
-            <ShoppingBag className="w-5 h-5 text-solo-neon" />
-            <span className="text-[10px] text-solo-gray">Market</span>
-          </Button>
-        </div>
-      </nav>
+     {/* ✅ Footer reutilizable */}
+        <FooterNav />
     </div>
   );
-};
-
-export default Training;
+}

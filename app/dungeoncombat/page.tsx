@@ -1,8 +1,13 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import CombatInterface from '@/components/CombatInterface';
-import { useToast } from '@/components/ui/use-toast';
+"use client"; // ✅ Necesario para usar hooks en Next.js
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession, signIn } from "next-auth/react";
+import CombatInterface from "@/components/CombatInterface";
+import { useToast } from "@/hooks/use-toast";
+import ProtectedRoute from "@/components/ProtectedRoute"; // ✅ Protección de ruta
+
+// ✅ Jugador por defecto (si no hay datos en localStorage)
 const defaultPlayers = [
   {
     id: "p1",
@@ -20,39 +25,65 @@ const defaultPlayers = [
   }
 ];
 
-const DungeonCombat = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+export default function DungeonCombat() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { toast } = useToast();
-  
-  // Ensure we have valid player data or use defaults
-  const players = (location.state?.players?.length > 0 ? location.state.players : defaultPlayers)
-    .map(player => ({
-      ...player,
-      stats: {
-        hp: player.stats?.hp ?? 100,
-        maxHp: player.stats?.maxHp ?? 100,
-        power: player.stats?.power ?? 20,
-        defense: player.stats?.defense ?? 10,
-        mana: player.stats?.mana ?? 50,
-        maxMana: player.stats?.maxMana ?? 50
-      }
-    }));
+  const [players, setPlayers] = useState(defaultPlayers);
 
+  // ✅ Carga los jugadores desde `localStorage`
+  useEffect(() => {
+    const storedPlayers = localStorage.getItem("matchedPlayers");
+    if (storedPlayers) {
+      try {
+        const parsedPlayers = JSON.parse(storedPlayers);
+        if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
+          setPlayers(parsedPlayers);
+        }
+      } catch (error) {
+        console.error("Error al leer jugadores emparejados:", error);
+      }
+    } else {
+      router.push("/dungeon"); // 🚀 Si no hay jugadores, redirige a la selección de mazmorra
+    }
+  }, []);
+
+// 🚀 Redirige al login si no está autenticado después de 5 segundos
+useEffect(() => {
+  if (status === "unauthenticated") {
+    setTimeout(() => {
+      signIn();
+    }, 5000); // ⏳ Espera 5 segundos antes de redirigir
+  }
+}, [status]);
+
+// 🛑 Muestra un mensaje si está verificando la sesión o si está no autenticado (antes de redirigir)
+if (status === "loading" || status === "unauthenticated") {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-solo-dark text-black">
+      <div className="p-6 bg-white rounded-lg shadow-lg text-center">
+        <p className="text-xl font-bold">🔄 Login please...</p>
+        {status === "unauthenticated" && (
+          <p className="text-md text-gray-600 mt-2">You will be redirected to login in 5 seconds...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+  // ✅ Función que maneja el final del combate
   const handleCombatEnd = (winner: any) => {
     toast({
       title: "¡Combate finalizado!",
-      description: `${winner.name} es victorioso!`,
+      description: `${winner.name} es el vencedor! 🎉`,
     });
-    setTimeout(() => navigate('/dungeon'), 3000);
+    setTimeout(() => router.push("/dungeon"), 3000); // 🚀 Redirige a la mazmorra después de 3s
   };
 
   return (
-    <CombatInterface
-      players={players}
-      onCombatEnd={handleCombatEnd}
-    />
+    <ProtectedRoute> {/* ✅ Protegemos la ruta */}
+      <CombatInterface players={players} onCombatEnd={handleCombatEnd} />
+    </ProtectedRoute>
   );
-};
-
-export default DungeonCombat;
+}

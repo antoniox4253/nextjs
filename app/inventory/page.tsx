@@ -1,15 +1,46 @@
 "use client"; // 👈 Necesario para permitir hooks en Next.js
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSession, signIn } from "next-auth/react";
 import ParticleBackground from "@/components/ParticleBackground";
 import { Button } from "@/components/ui/button";
 import { Gamepad, Dumbbell, Users, Compass, ShoppingBag, Swords } from "lucide-react";
 import Inventory from "@/components/Inventory";
+import ProtectedRoute from "@/components/ProtectedRoute"; // ✅ Protegemos la ruta
+import FooterNav from "@/components/Footer"; // ✅ Footer centralizado
 
 export default function InventoryPage() {
   const router = useRouter(); // ✅ Reemplazo de useNavigate()
+  const { data: session, status } = useSession();
+
+  // 🚀 Redirige al login si no está autenticado
+ // 🚀 Redirige al login si no está autenticado después de 5 segundos
+useEffect(() => {
+  if (status === "unauthenticated") {
+    setTimeout(() => {
+      signIn();
+    }, 5000); // ⏳ Espera 5 segundos antes de redirigir
+  }
+}, [status]);
+
+// 🛑 Muestra un mensaje si está verificando la sesión o si está no autenticado (antes de redirigir)
+if (status === "loading" || status === "unauthenticated") {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-solo-dark text-black">
+      <div className="p-6 bg-white rounded-lg shadow-lg text-center">
+        <p className="text-xl font-bold">🔄 Login please...</p>
+        {status === "unauthenticated" && (
+          <p className="text-md text-gray-600 mt-2">You will be redirected to login in 5 seconds...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
   return (
+    <ProtectedRoute> {/* ✅ Protegemos la ruta */}
     <div className="min-h-screen bg-solo-dark text-white relative overflow-hidden flex flex-col">
       <ParticleBackground className="absolute inset-0 z-0" />
       <div className="relative z-10 flex-grow">
@@ -23,55 +54,9 @@ export default function InventoryPage() {
         </main>
       </div>
 
-      {/* ✅ Footer con navegación */}
-      <footer className="relative z-10 bg-gradient-to-t from-solo-dark/95 to-solo-dark/80 backdrop-blur-sm py-4 md:py-6 border-t border-solo-purple/20">
-        <div className="container mx-auto px-2 md:px-4">
-          <nav className="grid grid-cols-3 md:grid-cols-6 gap-1 md:gap-4 max-w-4xl mx-auto">
-            <Button onClick={() => router.push('/dashboard')} variant="ghost" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-purple/20 transition-all duration-300 group">
-              <Gamepad className="w-5 h-5 md:w-6 md:h-6 text-solo-purple group-hover:text-solo-neon transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Home
-              </span>
-            </Button>
-            <Button onClick={() => router.push('/training')} variant="outline" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-blue/20 transition-all duration-300 group">
-              <Dumbbell className="w-5 h-5 md:w-6 md:h-6 text-solo-blue group-hover:text-solo-cyber transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Training
-              </span>
-            </Button>
-            <Button onClick={() => router.push('/guild')} variant="secondary" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-magenta/20 transition-all duration-300 group">
-              <Users className="w-5 h-5 md:w-6 md:h-6 text-solo-magenta group-hover:text-solo-energy transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Guild
-              </span>
-            </Button>
-            <Button onClick={() => router.push('/inventory')} variant="ghost" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-cyber/20 transition-all duration-300 group">
-              <Compass className="w-5 h-5 md:w-6 md:h-6 text-solo-cyber group-hover:text-solo-blue transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Inventory
-              </span>
-            </Button>
-            <Button onClick={() => router.push('/combat')} variant="destructive" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-energy/20 transition-all duration-300 group">
-              <Swords className="w-5 h-5 md:w-6 md:h-6 text-solo-energy group-hover:text-solo-magenta transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Combat
-              </span>
-            </Button>
-            <Button onClick={() => router.push('/market')} variant="link" size="sm"
-              className="flex flex-col items-center justify-center gap-1 h-auto py-2 hover:bg-solo-neon/20 transition-all duration-300 group">
-              <ShoppingBag className="w-5 h-5 md:w-6 md:h-6 text-solo-neon group-hover:text-solo-purple transition-colors" />
-              <span className="text-[10px] md:text-sm font-medium text-solo-gray group-hover:text-white transition-colors">
-                Market
-              </span>
-            </Button>
-          </nav>
-        </div>
-      </footer>
+  {/* ✅ Footer reutilizable */}
+        <FooterNav />
     </div>
+    </ProtectedRoute>
   );
 }

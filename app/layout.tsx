@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import NextAuthProvider from "@/components/next-auth-provider";
 import { LanguageProvider } from "@/contexts/LanguageContext"; // ✅ Importar el proveedor de idioma
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -25,19 +24,20 @@ export default function RootLayout({
       ssr: false,
     }
   );
+
   return (
     <html lang="en">
-    <body className={inter.className}>
-      <NextAuthProvider>
-        <LanguageProvider>  {/* ✅ Ahora el contexto está disponible en toda la app */}
-          <ErudaProvider>
-            <MiniKitProvider>
-              {children}
-            </MiniKitProvider>
-          </ErudaProvider>
-        </LanguageProvider>
-      </NextAuthProvider>
-    </body>
-  </html>
+      <body className={inter.className}>
+        <NextAuthProvider>
+          <LanguageProvider>  {/* ✅ Ahora el contexto está disponible en toda la app */}
+            <ErudaProvider>
+              <MiniKitProvider>
+                {children}
+              </MiniKitProvider>
+            </ErudaProvider>
+          </LanguageProvider>
+        </NextAuthProvider>
+      </body>
+    </html>
   );
 }
