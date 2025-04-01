@@ -62,298 +62,22 @@ const TrainingSection = ({ category }: TrainingSectionProps) => {
   }, [session, toast]);
 
   // Verificar entrenamientos activos y actualizar timers
-  useEffect(() => {
-    const checkActiveTrainings = async () => {
-      if (!session?.user?.name) return;
 
-      try {
-        const response = await fetch(`/api/training/active?hashworld=${session.user.name}`);
-        const data = await response.json();
-
-        if (data.active) {
-          // Verificar cada entrenamiento y completar si es necesario
-          for (const training of data.trainings) {
-            if (training.category === category && training.timeLeft <= 0 && !training.completed) {
-              console.log('Completando entrenamiento:', training.id);
-              await completeTraining(training.id);
-            }
-          }
-
-          setActiveTrainings(data.trainings);
-          
-          // Actualizar timers solo para entrenamientos no completados
-          const newTimers: { [key: string]: number } = {};
-          data.trainings.forEach((training: ActiveTraining) => {
-            if (!training.completed && training.category === category) {
-              const trainingConfig = TRAININGS[category].find(t => t.id === training.trainingId);
-              if (trainingConfig) {
-                newTimers[training.id] = training.timeLeft;
-              }
-            }
-          });
-          setTrainingTimers(newTimers);
-        } else {
-          setActiveTrainings([]);
-          setTrainingTimers({});
-        }
-      } catch (error) {
-        console.error('Error checking active trainings:', error);
-      }
-    };
-
-    checkActiveTrainings();
-    const interval = setInterval(checkActiveTrainings, 1000);
-    return () => clearInterval(interval);
-  }, [session, category]);
-
+  
   // Actualizar timers cada segundo y verificar completados
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTrainingTimers(prev => {
-        const updated = { ...prev };
-        let needsUpdate = false;
-        
-        Object.keys(updated).forEach(key => {
-          if (updated[key] > 0) {
-            updated[key] -= 1;
-            if (updated[key] === 0) {
-              needsUpdate = true;
-              // Buscar el entrenamiento correspondiente
-              const training = activeTrainings.find(t => t.id === key);
-              if (training && !training.completed) {
-                completeTraining(key);
-              }
-            }
-          }
-        });
-
-        return updated;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [activeTrainings]);
 
   // Verificar si puede iniciar nuevo entrenamiento
-  const canStartNewTraining = () => {
-    if (!character) {
-      console.log('No hay personaje cargado');
-      return false;
-    }
-    
-    const currentActiveTrainings = activeTrainings.filter(t => !t.completed && t.timeLeft > 0).length;
-    
-    console.log('Validación de inicio de entrenamiento:', {
-      slotsDisponibles: character.slotTraining,
-      entrenamientosActivos: currentActiveTrainings,
-      todosLosEntrenamientos: activeTrainings,
-      entrenamientosFiltrados: activeTrainings.filter(t => !t.completed && t.timeLeft > 0)
-    });
-    
-    return currentActiveTrainings < (character.slotTraining || 1);
-  };
 
-  const startTraining = async (trainingId: string) => {
-    if (!session?.user?.name || !character) {
-      console.log('No hay sesión o personaje:', { session: !!session, character: !!character });
-      return;
-    }
+  // Marcar este entrenamiento específico como en progreso
+   
+  // Verificar energía del personaje activo
 
-    // Verificar slots disponibles
-    const currentActive = activeTrainings.filter(t => !t.completed && t.timeLeft > 0).length;
-    console.log('Verificación de slots:', {
-      currentActive,
-      maxSlots: character.slotTraining,
-      activeTrainings,
-      canStart: canStartNewTraining()
-    });
-
-    if (!canStartNewTraining()) {
-      toast({
-        title: "❌ Slots llenos",
-        description: `Tienes ${currentActive}/${character.slotTraining} entrenamientos activos`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Marcar este entrenamiento específico como en progreso
-    setTrainingInProgress(prev => ({ ...prev, [trainingId]: true }));
-    console.log('Iniciando entrenamiento:', { trainingId, category });
-
-    const training = TRAININGS[category].find((t: Training) => t.id === trainingId);
-    if (!training) {
-      console.log('Entrenamiento no encontrado:', trainingId);
-      return;
-    }
-
-    // Verificar energía
-    console.log('Verificación de energía:', {
-      required: training.energyCost,
-      current: character.energy.current
-    });
-
-    if (character.energy.current < training.energyCost) {
-      toast({
-        title: "❌ Energía insuficiente",
-        description: `Necesitas ${training.energyCost} energía. Tienes ${character.energy.current}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      console.log('Enviando petición al servidor...');
-      const response = await fetch('/api/training/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hashworld: session.user.name,
-          trainingId,
-          category,
-          energyCost: training.energyCost
-        })
-      });
-
-      const data = await response.json();
-      console.log('Respuesta del servidor:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al iniciar entrenamiento');
-      }
-
-      // Actualizar el personaje localmente
-      setCharacter(prevChar => {
-        if (!prevChar) return null;
-        console.log('Actualizando energía:', {
-          anterior: prevChar.energy.current,
-          nueva: data.newEnergy
-        });
-        const updatedChar = {
-          ...prevChar,
-          energy: {
-            ...prevChar.energy,
-            current: data.newEnergy
-          }
-        };
-        window.dispatchEvent(new Event('energyChanged'));
-        return updatedChar;
-      });
-
-      // Agregar el nuevo entrenamiento a la lista de activos
-      setActiveTrainings(prevTrainings => {
-        console.log('Actualizando entrenamientos activos:', {
-          anteriores: prevTrainings,
-          nuevo: {
-            id: data.trainingId,
-            trainingId,
-            category,
-            timeLeft: training.duration,
-            endTime: new Date(data.endTime),
-            completed: false
-          }
-        });
-        return [...prevTrainings, {
-          id: data.trainingId,
-          trainingId,
-          category,
-          timeLeft: training.duration,
-          endTime: new Date(data.endTime),
-          completed: false
-        }];
-      });
-
-      toast({
-        title: "✅ Entrenamiento iniciado",
-        description: `Has comenzado el entrenamiento de ${training.name}`
-      });
-
-    } catch (error) {
-      console.error('Error detallado al iniciar entrenamiento:', error);
-      toast({
-        title: "❌ Error",
-        description: error instanceof Error ? error.message : "No se pudo iniciar el entrenamiento",
-        variant: "destructive"
-      });
-    } finally {
-      console.log('Finalizando proceso de inicio de entrenamiento');
-      setTrainingInProgress(prev => ({ ...prev, [trainingId]: false }));
-    }
-  };
-
-  const completeTraining = async (trainingId: string) => {
-    if (!session?.user?.name) return;
-  
-    try {
-      console.log('Iniciando completado de entrenamiento:', trainingId);
+  // Actualizar el personaje localmente
+     
+  // Agregar el nuevo entrenamiento a la lista de activos
       
-      const response = await fetch('/api/training/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hashworld: session.user.name,
-          trainingId
-        })
-      });
-  
-      const data = await response.json();
-  
-      // 🔴 Agrega este console.log justo aquí 🔴
-      console.log('Respuesta del backend al completar:', data);
-  
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al completar entrenamiento');
-      }
-  
-      // Actualizar la lista de entrenamientos localmente
-      setActiveTrainings(prev => 
-        prev.map(t => 
-          t.id === trainingId 
-            ? { ...t, completed: true } 
-            : t
-        )
-      );
-  
-      // Limpiar el timer para este entrenamiento
-      setTrainingTimers(prev => {
-        const updated = { ...prev };
-        delete updated[trainingId];
-        return updated;
-      });
-  
-      // 🔥 Verificar si newStats está presente antes de actualizar el personaje
-      if (data.newStats) {
-        setCharacter(prevChar => {
-          if (!prevChar) return null;
-          return {
-            ...prevChar,
-            stats: {
-              ...prevChar.stats,
-              ...data.newStats // ✅ Se suman los nuevos stats correctamente
-            },
-            progression: {
-              ...prevChar.progression,
-              xp: data.newXP
-            }
-          };
-        });
-      }
-  
-      toast({
-        title: "✅ Entrenamiento completado",
-        description: `Has ganado ${data.xpGained} XP`
-      });
-  
-    } catch (error) {
-      console.error('Error en completeTraining:', error);
-      toast({
-        title: "❌ Error",
-        description: "No se pudo completar el entrenamiento",
-        variant: "destructive"
-      });
-    }
-  };
-  
+
+
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
@@ -437,15 +161,10 @@ const TrainingSection = ({ category }: TrainingSectionProps) => {
                   </div>
                 ) : (
                   <Button
-                    onClick={() => startTraining(training.id)}
-                    disabled={
-                      trainingInProgress[training.id] || 
-                      !character || 
-                      character.energy.current < training.energyCost || 
-                      !canStartNewTraining()
-                    }
+                    //boton on click
+                    
                     className={`w-full h-12 relative overflow-hidden
-                      ${trainingInProgress[training.id] || !canStartNewTraining()
+                      ${trainingInProgress[training.id] 
                         ? 'bg-solo-dark/50 text-solo-gray cursor-not-allowed' 
                         : !character || character.energy.current < training.energyCost 
                           ? 'bg-solo-dark/50 text-solo-gray cursor-not-allowed' 
