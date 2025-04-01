@@ -1,18 +1,32 @@
 "use client";
 
-import eruda from "eruda";
-import { ReactNode, useEffect } from "react";
+import { useEffect } from 'react';
 
-export const Eruda = (props: { children: ReactNode }) => {
+export default function ErudaProvider() {
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        eruda.init();
-      } catch (error) {
-        console.log("Eruda failed to initialize", error);
-      }
+    // Solo cargar en desarrollo y en el cliente
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      // Usar dynamic import para cargar Eruda
+      import('eruda')
+        .then(({ default: eruda }) => {
+          // Verificar si ya está inicializado
+          if (!window.__ERUDA_INITIALIZED) {
+            eruda.init();
+            window.__ERUDA_INITIALIZED = true;
+          }
+        })
+        .catch((err) => {
+          console.warn('⚠️ Error cargando Eruda:', err);
+        });
     }
   }, []);
 
-  return <>{props.children}</>;
-};
+  return null;
+}
+
+// Agregar el tipo para la variable global
+declare global {
+  interface Window {
+    __ERUDA_INITIALIZED?: boolean;
+  }
+}

@@ -10,12 +10,12 @@ import React from "react";
 import { useState, useEffect } from "react";
 
 const characterImages = [
-  { src: "/images/guerrero.png", alt: "Warrior", border: "border-solo-energy" },
-  { src: "/images/espadachin.png", alt: "Swordsman", border: "border-solo-purple" },
-  { src: "/images/curador.png", alt: "Healer", border: "border-solo-guild" },
-  { src: "/images/asesino.png", alt: "Assassin", border: "border-solo-magenta" },
-  { src: "/images/arquero.png", alt: "Archer", border: "border-solo-neon" },
-  { src: "/images/mago.png", alt: "Mage", border: "border-solo-cyber" }
+  { src: "/images/classes/guerrero.png", alt: "Warrior", border: "border-solo-energy" },
+  { src: "/images/classes/espadachin.png", alt: "Swordsman", border: "border-solo-purple" },
+  { src: "/images/classes/curador.png", alt: "Healer", border: "border-solo-guild" },
+  { src: "/images/classes/asesino.png", alt: "Assassin", border: "border-solo-magenta" },
+  { src: "/images/classes/arquero.png", alt: "Archer", border: "border-solo-neon" },
+  { src: "/images/classes/mago.png", alt: "Mage", border: "border-solo-cyber" }
 ];
 
 export default function Home() {
@@ -52,67 +52,110 @@ export default function Home() {
             </TabsList>
 
             <TabsContent value="home">
-  <Card className="p-6 bg-solo-dark/50 border-solo-purple/30">
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-  
-  {/* 📜 Sección de información */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-solo-purple">Welcome to Realm of Valor</h2>
-        <p className="text-solo-gray text-sm md:text-base">
-          A blockchain-powered RPG where warriors, archers, mages, and assassins battle for supremacy.
-          Equip NFTs, upgrade skills, and earn rewards in a world full of treasures and magic.
-        </p>
+              <Card className="p-6 bg-solo-dark/50 border-solo-purple/30">
+                <div className="flex flex-col gap-8">
+                  {/* Título centrado */}
+                  <div className="text-center">
+                    <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-solo-purple to-solo-cyber bg-clip-text text-transparent">
+                      Welcome to Realm of Valor
+                    </h2>
+                  </div>
 
-        {/* 🔥 Lista de Clases de Personajes */}
-        <div className="bg-solo-dark/40 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-solo-cyber">Choose Your Path:</h3>
-          <ul className="grid grid-cols-2 gap-3 text-sm text-solo-gray mt-2">
-            <li className="flex items-center gap-2">
-              <Sword className="w-4 h-4 text-solo-energy" /> Warrior - Tank & Melee Combat
-            </li>
-            <li className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-solo-purple" /> Swordsman - Agile & Precision Strikes
-            </li>
-            <li className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-solo-guild" /> Healer - Support & Recovery
-            </li>
-            <li className="flex items-center gap-2">
-              <Skull className="w-4 h-4 text-solo-magenta" /> Assassin - Stealth & Lethal Strikes
-            </li>
-            <li className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-solo-neon" /> Archer - Ranged Attacks
-            </li>
-            <li className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-solo-cyber" /> Mage - Elemental Mastery
-            </li>
-          </ul>
-        </div>        
-      </div>
+                  {/* Descripción e imagen en dos columnas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    {/* Columna de descripción */}
+                    <div className="prose prose-invert">
+                      <p className="text-solo-gray text-base md:text-lg leading-relaxed">
+                        A blockchain-powered RPG where warriors, archers, mages, and assassins battle for supremacy.
+                        Equip NFTs, upgrade skills, and earn rewards in a world full of treasures and magic.
+                      </p>
+                    </div>
 
-      {/* 🎭 Slider con transiciones automáticas */}
-      <div className="relative w-full flex items-center justify-center">
-        <div className="relative w-40 h-40 md:w-48 md:h-48">
-          {characterImages.slice(currentIndex, currentIndex + 2).map((character, index) => (
-            <div 
-              key={index} 
-              className={`absolute inset-0 flex flex-col items-center transition-opacity duration-1000 ease-in-out ${
-                index === 0 ? "opacity-100 scale-100" : "opacity-0 scale-90"
-              }`}
-            >
-              <img 
-                src={character.src} 
-                alt={character.alt} 
-                className={`w-40 h-40 md:w-48 md:h-48 rounded-lg border-4 ${character.border} transition-transform duration-500 hover:scale-110`}
-              />
-              <p className="text-sm text-solo-gray mt-2">{character.alt}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-</div>
-  </Card>
-</TabsContent>
+                    {/* Columna de imagen */}
+                    <div className="flex items-center justify-center">
+                      <div className="relative w-48 h-48 md:w-64 md:h-64">
+                        {characterImages.slice(currentIndex, currentIndex + 2).map((character, index) => (
+                          <div 
+                            key={index} 
+                            className={`absolute inset-0 flex flex-col items-center transition-opacity duration-1000 ease-in-out ${
+                              index === 0 ? "opacity-100 scale-100" : "opacity-0 scale-90"
+                            }`}
+                          >
+                            <img 
+                              src={character.src} 
+                              alt={character.alt} 
+                              className={`w-full h-full object-cover rounded-lg border-4 ${character.border} transition-transform duration-500 hover:scale-105 shadow-xl`}
+                            />
+                            <p className="text-sm text-solo-gray mt-2">{character.alt}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Choose Your Path en una sola columna */}
+                  <div className="bg-solo-dark/40 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-solo-cyber flex items-center gap-2 mb-4">
+                      <Sword className="w-4 h-4" />
+                      Choose Your Path:
+                    </h3>
+                    <ul className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-solo-gray">
+                      {/* Primera fila */}
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-energy/10">
+                          <Sword className="w-4 h-4 text-solo-energy" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Warrior - Tank & Melee Combat
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-purple/10">
+                          <Shield className="w-4 h-4 text-solo-purple" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Swordsman - Agile & Precision
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-guild/10">
+                          <Heart className="w-4 h-4 text-solo-guild" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Healer - Support & Recovery
+                        </span>
+                      </li>
+
+                      {/* Segunda fila */}
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-magenta/10">
+                          <Skull className="w-4 h-4 text-solo-magenta" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Assassin - Stealth & Lethal
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-neon/10">
+                          <Target className="w-4 h-4 text-solo-neon" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Archer - Ranged Attacks
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-2 p-2 hover:bg-solo-dark/40 rounded-lg transition-all group">
+                        <div className="p-1.5 bg-solo-dark/50 rounded-lg group-hover:bg-solo-cyber/10">
+                          <Wand2 className="w-4 h-4 text-solo-cyber" />
+                        </div>
+                        <span className="text-solo-gray group-hover:text-white transition-colors">
+                          Mage - Elemental Mastery
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="features">
               <Card className="p-6 bg-solo-dark/50 border-solo-cyber/30">

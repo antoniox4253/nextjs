@@ -4,37 +4,43 @@ import "./globals.css";
 import MiniKitProvider from "@/components/minikit-provider";
 import dynamic from "next/dynamic";
 import NextAuthProvider from "@/components/next-auth-provider";
-import { LanguageProvider } from "@/contexts/LanguageContext"; // ✅ Importar el proveedor de idioma
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import ClientLayout from "@/components/ClientLayout";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true
+});
+
+// Cargar Eruda dinámicamente solo en desarrollo
+const ErudaProvider = process.env.NODE_ENV === 'development'
+  ? dynamic(() => import('@/components/Eruda/eruda-provider'), { ssr: false })
+  : () => null;
 
 export const metadata: Metadata = {
   title: "Realm Of Valor",
   description: "Wolf Dev",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  themeColor: "#1a1f2c"
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const ErudaProvider = dynamic(
-    () => import("../components/Eruda").then((c) => c.ErudaProvider),
-    {
-      ssr: false,
-    }
-  );
-
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <NextAuthProvider>
-          <LanguageProvider>  {/* ✅ Ahora el contexto está disponible en toda la app */}
-            <ErudaProvider>
+          <LanguageProvider>
+            <ClientLayout>
+              <ErudaProvider />
               <MiniKitProvider>
                 {children}
               </MiniKitProvider>
-            </ErudaProvider>
+            </ClientLayout>
           </LanguageProvider>
         </NextAuthProvider>
       </body>

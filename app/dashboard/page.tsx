@@ -1,37 +1,84 @@
 "use client"; // ✅ Necesario para usar hooks en Next.js
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession, signIn } from "next-auth/react";
-import ParticleBackground from "@/components/ParticleBackground";
-import CharacterPanel from "@/components/CharacterPanel";
-import EnergyBar from "@/components/EnergyBar";
-import DailyMissions from "@/components/DailyMissions";
-import CharacterSelector from "@/components/CharacterSelector";
-import ServerChat from "@/components/chat/ServerChat";
-import MessageInbox from "@/components/messaging/MessageInbox";
-import AdvertisingSection from "@/components/AdvertisingSection";
-import RankingSection from "@/components/RankingSection";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Trophy, Star } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ProtectedRoute from "@/components/ProtectedRoute"; // ✅ Protección de ruta
 import SignIn from "@/components/SignIn"; // ✅ Importamos SignIn (Sign Out incluido)
 import FooterNav from "@/components/Footer"; // ✅ Footer centralizado
+import { TabsContent } from "@/components/ui/tabs";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import ParticleBackground from "@/components/ParticleBackground";
+import CharacterPanel from "@/components/CharacterPanel";
+import EnergyBar from "@/components/EnergyBar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CharacterSelector from "@/components/CharacterSelector";
+import { Star, Award, Trophy } from "lucide-react";
+import AdvertisingSection from "@/components/AdvertisingSection";
+import ServerChat from "@/components/chat/ServerChat";
+import DailyMissions from "@/components/DailyMissions";
+import MessageInbox from "@/components/messaging/MessageInbox";
+import RankingSection from "@/components/RankingSection";
+import Image from "next/image";
+import CurrencyPanel from '@/components/CurrencyPanel';
+
+interface UserData {
+  authProvider: 'google' | 'worldcoin' | 'unknown';
+  // ... otros campos que necesites
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const { t } = useLanguage();
   const { data: session, status } = useSession();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!session?.user?.name) return;
+      
+      try {
+        const response = await fetch(`/api/user/data?hashworld=${session.user.name}`);
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        const data = await response.json();
+        setUserData(data);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    const fetchCharacterData = async () => {
+      if (!session?.user?.name) return;
+      
+      try {
+        const response = await fetch(`/api/character/active?hashworld=${session.user.name}`);
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        const data = await response.json();
+        setActiveCharacter(data);
+      } catch (error) {
+        console.error('Error fetching character data:', error);
+      }
+    };
+
+    if (session?.user?.name) {
+      fetchUserData();
+      fetchCharacterData();
+    }
+  }, [session]);
 
   // 🚀 Redirige al login si no está autenticado después de 5 segundos
   useEffect(() => {
     if (status === "unauthenticated") {
       setTimeout(() => {
-        signIn();
+        router.push("/login");
       }, 5000);
     }
-  }, [status]);
+  }, [status, router]);
 
   // 🛑 Muestra un mensaje si está verificando la sesión o si está no autenticado (antes de redirigir)
   if (status === "loading" || status === "unauthenticated") {
@@ -57,12 +104,42 @@ export default function Dashboard() {
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-solo-purple via-solo-blue to-solo-magenta bg-clip-text text-transparent">
               Realm of Valor
             </h1>
+            
+            {/* Badge de autenticación */}
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <span className="text-sm text-gray-400">Auth with</span>
+              {userData ? (
+                userData.authProvider === 'google' ? (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                    <Image src="/Glogo.png" alt="Google" width={16} height={16} />
+                    <span className="text-sm text-blue-500">Google</span>
+                  </div>
+                ) : userData.authProvider === 'worldcoin' ? (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                    <Image src="/wldlogo.png" alt="Worldcoin" width={16} height={16} />
+                    <span className="text-sm text-green-500">Worldcoin</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-500/10 border border-gray-500/20">
+                    <span className="text-sm text-gray-400">Loading...</span>
+                  </div>
+                )
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-500/10 border border-gray-500/20">
+                  <span className="text-sm text-gray-400">
+                    <span className="inline-block animate-spin mr-1">⌛</span>
+                    Loading...
+                  </span>
+                </div>
+              )}
+            </div>
           </header>
 
           {/* ✅ Contenido principal con múltiples Tabs */}
           <main className="pb-24 space-y-6">
+            <CurrencyPanel />
             <CharacterPanel />
-            <EnergyBar currentEnergy={10} maxEnergy={20} isCharging={true} />
+            <EnergyBar />
 
             <Tabs defaultValue="character" className="w-full">
               <TabsList className="w-full bg-solo-dark/50 border border-solo-purple/30 mb-4">

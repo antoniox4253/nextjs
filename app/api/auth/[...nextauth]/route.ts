@@ -1,4 +1,5 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 
 const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -24,10 +25,28 @@ const authOptions: NextAuthOptions = {
         };
       },
     },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.email,
+          name: profile.email,
+          email: profile.email,
+          image: profile.picture,
+        };
+      },
+    }),
   ],
   callbacks: {
     async signIn({ user }) {
       return true;
+    },
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.name = session.user.email || session.user.name;
+      }
+      return session;
     },
   },
   debug: process.env.NODE_ENV === "development",

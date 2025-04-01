@@ -16,12 +16,12 @@ import ProtectedRoute from "@/components/ProtectedRoute"; // ✅ Protección de 
 type CharacterClass = "guerrero" | "espadachin" | "arquero" | "curador" | "mago" | "asesino";
 
 const classes = [
-  { name: "guerrero", icon: Shield, description: "Tanque poderoso en combate cuerpo a cuerpo", color: "solo-energy", image: "/images/guerrero.png" },
-  { name: "espadachin", icon: Sword, description: "Atacante ágil con gran destreza", color: "solo-purple", image: "/images/espadachin.png" },
-  { name: "arquero", icon: Target, description: "Experto en ataques a distancia", color: "solo-neon", image: "/images/arquero.png" },
-  { name: "curador", icon: Heart, description: "Soporte y sanador del equipo", color: "solo-guild", image: "/images/curador.png" },
-  { name: "mago", icon: Wand2, description: "Maestro de las artes mágicas", color: "solo-cyber", image: "/images/mago.png" },
-  { name: "asesino", icon: Skull, description: "Rápido y letal en sigilo", color: "solo-magenta", image: "/images/asesino.png" }
+  { name: "guerrero", icon: Shield, description: "Tanque poderoso en combate cuerpo a cuerpo", color: "solo-energy", image: "/images/classes/guerrero.png" },
+  { name: "espadachin", icon: Sword, description: "Atacante ágil con gran destreza", color: "solo-purple", image: "/images/classes/espadachin.png" },
+  { name: "arquero", icon: Target, description: "Experto en ataques a distancia", color: "solo-neon", image: "/images/classes/arquero.png" },
+  { name: "curador", icon: Heart, description: "Soporte y sanador del equipo", color: "solo-guild", image: "/images/classes/curador.png" },
+  { name: "mago", icon: Wand2, description: "Maestro de las artes mágicas", color: "solo-cyber", image: "/images/classes/mago.png" },
+  { name: "asesino", icon: Skull, description: "Rápido y letal en sigilo", color: "solo-magenta", image: "/images/classes/asesino.png" }
 ];
 
 export default function Register() {
@@ -72,20 +72,102 @@ export default function Register() {
   // ✅ Función para manejar el envío del formulario y guardar el personaje en la BD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
-    if (!selectedClass || !nickname.trim()) {
-      toast({ title: "Error", description: "Selecciona una clase y un nickname.", variant: "destructive" });
-      return;
+    try {
+      // Validaciones del lado del cliente
+      if (!nickname.trim()) {
+        toast({
+          title: "⚠️ Campo requerido",
+          description: "Por favor ingresa un nickname",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!selectedClass) {
+        toast({
+          title: "⚠️ Selección requerida",
+          description: "Por favor selecciona una clase para tu personaje",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/user/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hashworld: session?.user?.name,
+          nickname,
+          characterClass: selectedClass,
+          referral
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Manejar diferentes tipos de errores
+        switch (data.error) {
+          case "Código de referido no válido":
+            toast({
+              title: "❌ Referido inválido",
+              description: "El código de referido ingresado no existe",
+              variant: "destructive",
+            });
+            break;
+          case "Nickname ya existe":
+            toast({
+              title: "❌ Nickname no disponible",
+              description: "Este nickname ya está en uso, por favor elige otro",
+              variant: "destructive",
+            });
+            break;
+          case "Usuario no autenticado":
+            toast({
+              title: "🔒 No autenticado",
+              description: "Por favor inicia sesión nuevamente",
+              variant: "destructive",
+            });
+            break;
+          case "Usuario ya registrado":
+            toast({
+              title: "ℹ️ Ya registrado",
+              description: "Ya tienes un personaje registrado",
+              variant: "default",
+            });
+            break;
+          default:
+            toast({
+              title: "❌ Error",
+              description: data.error || "Error en el registro",
+              variant: "destructive",
+            });
+        }
+        return;
+      }
+
+      // Registro exitoso
+      toast({
+        title: "✅ ¡Registro exitoso!",
+        description: "Tu personaje ha sido creado. ¡Bienvenido a Realm of Valor!",
+        variant: "default",
+      });
+
+      // Redirigir al dashboard después de un registro exitoso
+      router.push("/dashboard");
+
+    } catch (error) {
+      console.error("❌ Error en registro:", error);
+      toast({
+        title: "❌ Error inesperado",
+        description: "Hubo un problema al procesar tu registro. Por favor intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    const payload = { 
-      nickname, 
-      referral, 
-      class: selectedClass, 
-      userId, // ✅ Usamos `session.user.name` como ID único
-    };
-
-  
   };
 
   return (
@@ -102,25 +184,35 @@ export default function Register() {
             <Input type="text" placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} required />
             <Input type="text" placeholder="Código de referido (opcional)" value={referral} onChange={(e) => setReferral(e.target.value)} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Grid de clases 2x3 */}
+            <div className="grid grid-cols-2 gap-4">
               {classes.map(({ name, icon: Icon, description, color, image }) => (
                 <Card
                   key={name}
-                  className={classNames("p-6 cursor-pointer border-2 transition-all duration-300 hover:scale-105 flex flex-col items-center", {
-                    "border-solo-energy": name === "guerrero",
-                    "border-solo-purple": name === "espadachin",
-                    "border-solo-neon": name === "arquero",
-                    "border-solo-guild": name === "curador",
-                    "border-solo-cyber": name === "mago",
-                    "border-solo-magenta": name === "asesino",
-                    "ring-2 ring-offset-2": selectedClass === name
-                  })}
+                  className={classNames(
+                    "relative p-4 cursor-pointer transition-all duration-300",
+                    {
+                      "border-solo-energy": name === "guerrero",
+                      "border-solo-purple": name === "espadachin",
+                      "border-solo-neon": name === "arquero",
+                      "border-solo-guild": name === "curador",
+                      "border-solo-cyber": name === "mago",
+                      "border-solo-magenta": name === "asesino",
+                      "ring-2 ring-offset-2": selectedClass === name
+                    }
+                  )}
                   onClick={() => setSelectedClass(name as CharacterClass)}
                 >
-                  <Icon className={`w-10 h-10 text-${color}`} />
-                  <h3 className="text-xl capitalize mt-2">{name}</h3>
-                  <p className="text-sm text-gray-400 text-center">{description}</p>
-                  <img src={image} alt={name} className="w-32 h-32 object-contain mt-2" />
+                  <div className="flex flex-col items-center">
+                    <Icon className={`w-10 h-10 text-${color} mb-2`} />
+                    <h3 className="text-xl capitalize mb-2">{name}</h3>
+                    <p className="text-sm text-gray-400 text-center mb-4">{description}</p>
+                    <img 
+                      src={image} 
+                      alt={name} 
+                      className="w-24 h-24 object-contain"
+                    />
+                  </div>
                 </Card>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import ParticleBackground from "@/components/ParticleBackground";
 import TrainingSection from "@/components/TrainingSection";
+import EnergyBar from "@/components/EnergyBar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Gamepad, Dumbbell, Users, Compass, ShoppingBag, Swords } from "lucide-react";
@@ -46,10 +47,11 @@ if (status === "loading" || status === "unauthenticated") {
       <ParticleBackground />
 
       <div className="container mx-auto px-4 py-6 relative z-10">
-        <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-solo-purple via-solo-blue to-solo-magenta bg-clip-text text-transparent">
             {t("training")}
           </h1>
+          <EnergyBar />
         </div>
 
         {/* ✅ Sistema de Tabs */}

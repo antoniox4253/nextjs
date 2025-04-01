@@ -4,6 +4,7 @@ import { Schema, model, models } from "mongoose";
 const UserSchema = new Schema({
   hashworld: { type: String, required: true, unique: true }, // ✅ Se vincula con `Auth`
   nickname: { type: String, unique: true, required: true }, // ✅ Nombre del jugador
+  authProvider: { type: String, required: true, enum: ['worldcoin', 'google'] }, // Nuevo campo
   referral: { type: String, default: "" }, // Código de referido
   gold: { type: Number, default: 100 }, // Oro inicial
   wld: { type: Number, default: 0 }, // Moneda premium

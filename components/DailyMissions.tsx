@@ -1,51 +1,68 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Target, CheckCircle2, Clock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSession } from 'next-auth/react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Mission {
-  id: string;
-  title: string;
-  description: string;
-  reward: string;
+  missionId: string;
   progress: number;
-  total: number;
   completed: boolean;
+  claimed: boolean;
 }
 
 const DailyMissions = () => {
   const { t } = useLanguage();
+  const { data: session } = useSession();
+  const { toast } = useToast();
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [timeUntilReset, setTimeUntilReset] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  const missions: Mission[] = [
-    {
-      id: '1',
-      title: t('demonHunter'),
-      description: t('defeatDemons'),
-      reward: '1000 EXP + 500 Oro',
-      progress: 3,
-      total: 10,
-      completed: false
-    },
-    {
-      id: '2',
-      title: t('dailyTraining'),
-      description: t('completeTraining'),
-      reward: '800 EXP + Poción de Poder',
-      progress: 2,
-      total: 3,
-      completed: false
-    },
-    {
-      id: '3',
-      title: t('expertTrader'),
-      description: t('sellItems'),
-      reward: '300 Oro + Caja Misteriosa',
-      progress: 5,
-      total: 5,
-      completed: true
-    }
-  ];
+  useEffect(() => {
+    const fetchMissions = async () => {
+      if (!session?.user?.name) return;
+
+      try {
+        const response = await fetch(`/api/missions/daily?hashworld=${session.user.name}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setMissions(data.missions);
+          setTimeUntilReset(data.timeUntilReset);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las misiones",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMissions();
+    
+    // Actualizar el contador cada segundo
+    const timer = setInterval(() => {
+      setTimeUntilReset(prev => Math.max(0, prev - 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [session]);
+
+  // Formatear el tiempo restante
+  const formatTimeRemaining = (ms: number) => {
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <Card className="bg-solo-dark/80 border-solo-energy/30 p-4 relative overflow-hidden">
@@ -56,7 +73,7 @@ const DailyMissions = () => {
           <h2 className="text-xl font-bold text-white">{t('dailyMissions')}</h2>
           <div className="ml-auto flex items-center gap-2">
             <Clock className="w-4 h-4 text-solo-gray" />
-            <span className="text-sm text-solo-gray">{t('resetIn')}: 12:34:56</span>
+            <span className="text-sm text-solo-gray">{t('resetIn')}: {formatTimeRemaining(timeUntilReset)}</span>
           </div>
         </div>
 
@@ -64,7 +81,7 @@ const DailyMissions = () => {
           <div className="space-y-3">
             {missions.map((mission) => (
               <Card 
-                key={mission.id}
+                key={mission.missionId}
                 className={`p-3 bg-solo-dark/60 border-solo-energy/20 hover:border-solo-energy transition-colors ${
                   mission.completed ? 'opacity-60' : ''
                 }`}
@@ -75,21 +92,18 @@ const DailyMissions = () => {
                   </div>
                   <div className="flex-grow">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-white">{mission.title}</h3>
-                      <span className="text-sm text-solo-energy">{mission.reward}</span>
+                      <h3 className="font-medium text-white">{mission.missionId}</h3>
                     </div>
-                    <p className="text-sm text-solo-gray mt-1">{mission.description}</p>
                     {!mission.completed && (
                       <div className="mt-2">
                         <div className="h-1.5 bg-solo-dark/50 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-solo-energy rounded-full transition-all duration-300"
-                            style={{ width: `${(mission.progress / mission.total) * 100}%` }}
+                            style={{ width: `${(mission.progress / 100) * 100}%` }}
                           />
                         </div>
                         <div className="flex justify-between mt-1">
-                          <span className="text-xs text-solo-gray">{mission.progress}/{mission.total}</span>
-                          <span className="text-xs text-solo-gray">{Math.round((mission.progress / mission.total) * 100)}%</span>
+                          <span className="text-xs text-solo-gray">{mission.progress}%</span>
                         </div>
                       </div>
                     )}

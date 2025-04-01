@@ -1,10 +1,12 @@
+"use client";
+
 import React, { useEffect, useRef } from 'react';
 
 interface ParticleBackgroundProps {
   className?: string;
 }
 
-const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ className }) => {
+export default function ParticleBackground({ className }: ParticleBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -131,6 +133,4 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ className }) =>
       style={{ opacity: 0.9 }}
     />
   );
-};
-
-export default ParticleBackground;
+}

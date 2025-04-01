@@ -1,119 +1,242 @@
-import React from 'react';
+"use client";
+
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Trophy, Medal, Star } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { Trophy, Medal, Crown } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Define valid character classes that match our translation keys
-type CharacterClass = 'warrior' | 'assassin' | 'mage' | 'archer' | 'healer';
-
-interface RankingItemProps {
-  rank: number;
-  name: string;
-  level: number;
-  class?: CharacterClass;
-  experience: number;
+interface RankingProps {
+  type: 'general' | 'class' | 'weekly';
+  characterClass?: string;
 }
 
-const RankingItem = ({ rank, name, level, class: characterClass, experience }: RankingItemProps) => {
-  const { t } = useLanguage();
+// Interfaces para los diferentes tipos de ranking
+interface User {
+  _id: string;
+  nickname: string;
+}
+
+interface Character {
+  _id: string;
+  level: number;
+  class: string;
+  progression: {
+    xp: number;
+  };
+}
+
+interface BaseRanking {
+  _id: string;
+  user: User[];
+}
+
+interface GeneralRanking extends BaseRanking {
+  totalXP: number;
+  character: Character;
+}
+
+interface ClassRanking extends BaseRanking {
+  character: Character[];
+  progression: {
+    xp: number;
+  };
+}
+
+interface WeeklyRanking extends BaseRanking {
+  experience: number;
+  dungeonClears: number;
+  character: Character[];
+}
+
+type RankingType = GeneralRanking | ClassRanking | WeeklyRanking;
+
+// Helper para type guards
+const isGeneralRanking = (rank: RankingType): rank is GeneralRanking => {
+  return 'totalXP' in rank;
+};
+
+const isClassRanking = (rank: RankingType): rank is ClassRanking => {
+  return 'progression' in rank && Array.isArray(rank.character);
+};
+
+const isWeeklyRanking = (rank: RankingType): rank is WeeklyRanking => {
+  return 'experience' in rank;
+};
+
+export default function RankingSection({ type, characterClass }: RankingProps) {
+  const { data: session } = useSession();
+  const [rankings, setRankings] = useState<RankingType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>("");
+
+  // Lista completa de clases con valores que coinciden con la base de datos
+  const classes = [
+    { value: "guerrero", label: "Guerrero", icon: "⚔️" },
+    { value: "mago", label: "Mago", icon: "🔮" },
+    { value: "arquero", label: "Arquero", icon: "🏹" },
+    { value: "curador", label: "Curador", icon: "✨" },
+    { value: "asesino", label: "Asesino", icon: "🗡️" },
+    { value: "espadachin", label: "Espadachín", icon: "🛡️" }
+  ];
+
+  useEffect(() => {
+    const fetchRankings = async () => {
+      if (!session?.user?.name) return;
+      if (type === 'class' && !selectedClass) {
+        setRankings([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams({
+          type,
+          limit: '10'
+        });
+
+        if (type === 'class' && selectedClass) {
+          params.append('class', selectedClass);
+        }
+
+        const response = await fetch(`/api/ranking?${params}`);
+        const data = await response.json();
+        setRankings(data);
+      } catch (error) {
+        console.error('Error fetching rankings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRankings();
+  }, [type, selectedClass, session]);
+
+  if (loading) {
+    return <div>Cargando rankings...</div>;
+  }
+
+  const getRankXP = (rank: RankingType): string => {
+    if (isWeeklyRanking(rank)) {
+      return rank.experience.toLocaleString();
+    } else if (isGeneralRanking(rank)) {
+      return rank.totalXP.toLocaleString();
+    } else if (isClassRanking(rank)) {
+      return rank.progression.xp.toLocaleString();
+    }
+    return '0';
+  };
+
+  const getCharacterInfo = (rank: RankingType): Character | null => {
+    if (isGeneralRanking(rank)) {
+      return rank.character;
+    } else if (isClassRanking(rank) || isWeeklyRanking(rank)) {
+      return rank.character[0] || null;
+    }
+    return null;
+  };
   
   return (
-    <Card className="bg-solo-dark/60 border-solo-purple/30 p-4 hover:border-solo-purple transition-colors">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center justify-center w-8 h-8">
-          {rank <= 3 ? (
-            <div className="text-2xl">
-              {rank === 1 && <Trophy className="w-6 h-6 text-yellow-500" />}
-              {rank === 2 && <Medal className="w-6 h-6 text-gray-400" />}
-              {rank === 3 && <Medal className="w-6 h-6 text-amber-700" />}
+    <div className="space-y-6">
+      {type === 'class' && (
+        <div className="bg-solo-dark/40 rounded-lg p-4 border border-solo-purple/20">
+          <h3 className="text-sm text-solo-gray mb-3">Selecciona una clase</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {classes.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setSelectedClass(c.value)}
+                className={`flex items-center gap-2 p-3 rounded-lg transition-all ${
+                  selectedClass === c.value
+                    ? 'bg-solo-purple/30 border-solo-purple text-white'
+                    : 'bg-solo-dark/50 border-solo-purple/20 text-solo-gray hover:bg-solo-purple/20'
+                } border`}
+              >
+                <span className="text-xl">{c.icon}</span>
+                <span>{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {type === 'class' && !selectedClass ? (
+        <div className="text-center p-8 rounded-lg bg-solo-dark/40 border border-solo-purple/20">
+          <div className="text-4xl mb-3">🎮</div>
+          <div className="text-solo-gray">
+            Selecciona una clase para ver el ranking
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rankings.map((rank, index) => {
+            const characterInfo = getCharacterInfo(rank);
+            const classInfo = classes.find(c => c.value === characterInfo?.class);
+            
+            return (
+              <Card 
+                key={rank._id} 
+                className={`p-4 transition-all ${
+                  index === 0 
+                    ? 'bg-gradient-to-r from-yellow-500/20 to-solo-dark/60 border-yellow-500/30' 
+                    : 'bg-solo-dark/60 border-solo-purple/20 hover:border-solo-purple/40'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Medalla según posición */}
+                  <div className="text-2xl w-10 h-10 flex items-center justify-center">
+                    {index === 0 && <Crown className="w-6 h-6 text-yellow-500" />}
+                    {index === 1 && <Medal className="w-6 h-6 text-gray-400" />}
+                    {index === 2 && <Medal className="w-6 h-6 text-amber-600" />}
+                    {index > 2 && (
+                      <span className="text-lg font-bold text-solo-gray">
+                        #{index + 1}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Información del jugador */}
+                  <div className="flex-grow">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-white">
+                        {rank.user[0]?.nickname || 'Unknown'}
+                      </h3>
+                      {classInfo && (
+                        <span className="text-lg" title={classInfo.label}>
+                          {classInfo.icon}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-solo-gray mt-1">
+                      <span>Nivel {characterInfo?.level || 0}</span>
+                      <span>•</span>
+                      <span className="capitalize">{classInfo?.label || 'Unknown'}</span>
+                    </div>
+                  </div>
+
+                  {/* Puntuación */}
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-solo-purple">
+                      {`${getRankXP(rank)} XP`}
+                    </div>
+                    {'dungeonClears' in rank && (
+                      <div className="text-sm text-solo-gray">
+                        {rank.dungeonClears} dungeons
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+
+          {rankings.length === 0 && (
+            <div className="text-center p-6 text-solo-gray">
+              No hay jugadores registrados con esta clase
             </div>
-          ) : (
-            <span className="text-solo-gray font-mono">{rank}</span>
           )}
         </div>
-        
-        <div className="flex-grow">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-white">{name}</span>
-            <span className="text-solo-purple font-mono">{t('level')} {level}</span>
-          </div>
-          
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-sm text-solo-gray">
-              {characterClass && `${t(characterClass)} • `}
-              {experience.toLocaleString()} XP
-            </span>
-            {rank <= 10 && <Star className="w-4 h-4 text-solo-cyber" />}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-};
-
-// Datos de ejemplo - En una implementación real, estos vendrían de una API
-const mockRankings = {
-  general: [
-    { rank: 1, name: "ShadowLord", level: 85, experience: 1250000 },
-    { rank: 2, name: "DragonHunter", level: 82, experience: 1150000 },
-    { rank: 3, name: "StormBringer", level: 80, experience: 1050000 },
-    { rank: 4, name: "LightSeeker", level: 78, experience: 950000 },
-    { rank: 5, name: "DarkKnight", level: 75, experience: 850000 },
-  ],
-  class: [
-    { rank: 1, name: "BladeRunner", level: 75, class: "warrior" as CharacterClass, experience: 950000 },
-    { rank: 2, name: "ShadowStep", level: 73, class: "assassin" as CharacterClass, experience: 900000 },
-    { rank: 3, name: "SpellWeaver", level: 70, class: "mage" as CharacterClass, experience: 850000 },
-    { rank: 4, name: "ArrowStorm", level: 68, class: "archer" as CharacterClass, experience: 800000 },
-    { rank: 5, name: "LifeBringer", level: 65, class: "healer" as CharacterClass, experience: 750000 },
-  ],
-  weekly: [
-    { rank: 1, name: "WeeklyChamp", level: 65, experience: 150000 },
-    { rank: 2, name: "Grinder", level: 63, experience: 140000 },
-    { rank: 3, name: "Dedicated", level: 60, experience: 130000 },
-    { rank: 4, name: "Challenger", level: 58, experience: 120000 },
-    { rank: 5, name: "Competitor", level: 55, experience: 110000 },
-  ]
-};
-
-// Datos de ejemplo para el personaje activo
-const mockActiveCharacter = {
-  general: { rank: 8, total: 1000 },
-  class: { rank: 3, total: 100 },
-  weekly: { rank: 15, total: 500 }
-};
-
-interface RankingSectionProps {
-  type: 'general' | 'class' | 'weekly';
-}
-
-const RankingSection = ({ type }: RankingSectionProps) => {
-  const { t } = useLanguage();
-  const rankings = mockRankings[type];
-  const activeCharacterRank = mockActiveCharacter[type];
-  
-  return (
-    <div className="space-y-4">
-      {rankings.map((ranking) => (
-        <RankingItem key={ranking.rank} {...ranking} />
-      ))}
-      
-      {/* Sección de posición del personaje activo */}
-      <Card className="mt-4 bg-solo-dark/80 border-solo-purple p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-solo-gray">{t('yourRank')}</span>
-          <div className="text-right">
-            <div className="text-white font-medium">
-              {activeCharacterRank.rank} / {activeCharacterRank.total}
-            </div>
-            <div className="text-sm text-solo-gray">
-              {t('currentPosition')}
-            </div>
-          </div>
-        </div>
-      </Card>
+      )}
     </div>
   );
-};
-
-export default RankingSection;
+}

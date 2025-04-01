@@ -1,29 +1,41 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGO_URI) {
-  throw new Error("🚨 La variable de entorno MONGO_URI no está definida en .env.local");
+if (!MONGODB_URI) {
+  throw new Error("🚨 La variable de entorno MONGODB_URI no está definida en .env");
 }
 
 // 📌 Variable global para evitar múltiples conexiones en desarrollo
 let isConnected = false;
 
 export const connectToDB = async () => {
-  if (isConnected) {
-    console.log("📌 Ya conectado a MongoDB");
-    return;
-  }
-
   try {
-    await mongoose.connect(MONGO_URI, {
-      dbName: "realm", 
-    });
+    if (isConnected) {
+      console.log("📌 Ya conectado a MongoDB");
+      return;
+    }
 
+    const options = {
+      dbName: "realm", // Nombre de la base de datos
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
+
+    await mongoose.connect(MONGODB_URI, options);
+    
     isConnected = true;
     console.log("✅ Conectado a MongoDB");
+    
+    // Verificar la conexión
+    const db = mongoose.connection;
+    db.on('error', console.error.bind(console, '❌ Error de conexión:'));
+    db.once('open', function() {
+      console.log("🎮 Base de datos War of Clans conectada");
+    });
+
   } catch (error) {
     console.error("❌ Error conectando a MongoDB:", error);
-    process.exit(1);
+    throw error;
   }
 };
