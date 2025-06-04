@@ -15,7 +15,8 @@ const CharacterSchema = new Schema({
     maxMana: { type: Number, default: 50 },
     currentMana: { type: Number, default: 50 },
     critico: { type: Number, default: 5 },
-    velocidad: { type: Number, default: 10 }
+    velocidad: { type: Number, default: 10 },
+    suerte: { type: Number, default: 10 } // Agregamos suerte
   },
   progression: {
     xp: { type: Number, default: 0 },

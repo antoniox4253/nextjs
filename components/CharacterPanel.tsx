@@ -192,6 +192,14 @@ const CharacterPanel = () => {
               </div>
               <p className="text-3xl font-bold text-white text-center">{activeCharacter.stats.velocidad}</p>
             </div>
+
+            <div className="bg-gradient-to-br from-solo-dark/40 to-solo-dark/20 p-5 rounded-lg border border-solo-purple/20 hover:border-solo-purple/40 transition-all duration-300 group">
+              <div className="flex items-center gap-2 mb-2">
+                <Gauge className="w-5 h-5 text-solo-cyber group-hover:scale-110 transition-transform" />
+                <h3 className="text-sm text-solo-gray">Suerte</h3>
+              </div>
+              <p className="text-3xl font-bold text-white text-center">{activeCharacter.stats.suerte}</p>
+            </div>
           </div>
         </div>
       </div>

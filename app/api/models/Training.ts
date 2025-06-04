@@ -44,7 +44,8 @@ const TrainingSchema = new Schema({
       maxHP: { type: Number },
       maxMana: { type: Number },
       critico: { type: Number },
-      velocidad: { type: Number }
+      velocidad: { type: Number },
+      suerte: { type: Number }
     },
     required: true
   },

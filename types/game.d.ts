@@ -7,6 +7,7 @@ export interface CharacterStats {
   currentMana: number;
   critico: number;
   velocidad: number;
+  suerte: number; // Nueva propiedad
 }
 
 export interface CharacterEnergy {

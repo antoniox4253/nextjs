@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
         maxMana: 50,
         currentMana: 50,
         critico: 5,
-        velocidad: 10
+        velocidad: 10,
+        suerte: 10 // Agregamos suerte
       },
       progression: {
         xp: 0,
